@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gambling Awareness Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .glass-card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .text-gradient {
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      background-image: linear-gradient(to right, #4f46e5, #10b981);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen font-sans text-white">
+  <div class="container mx-auto px-4 py-12">
+    <div class="max-w-2xl mx-auto glass-card p-8 rounded-xl">
+      <h1 class="text-3xl md:text-4xl font-bold mb-6 text-center">
+        Gambling <span class="text-gradient">Awareness Quiz</span>
+      </h1>
+      
+      <form id="quizForm" class="space-y-8">
+        <div id="questionsContainer" class="space-y-6"></div>
+        
+        <button type="submit" class="w-full bg-gradient-to-r from-primary to-secondary text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+          Submit Quiz
+        </button>
+      </form>
+      
+      <div id="results" class="mt-8 hidden text-center">
+        <h2 class="text-2xl font-bold mb-4">Your Results</h2>
+        <div class="text-xl mb-2">Score: <span id="score" class="font-bold"></span>/<span id="maxScore"></span></div>
+        <div id="assessment" class="text-lg p-4 rounded-lg bg-opacity-20"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Load quiz questions
+    fetch('/api/quiz')
+      .then(response => response.json())
+      .then(questions => {
+        const container = document.getElementById('questionsContainer');
+        
+        questions.forEach((q, i) => {
+          const questionDiv = document.createElement('div');
+          questionDiv.className = 'space-y-3';
+          
+          const questionText = document.createElement('h3');
+          questionText.className = 'text-xl font-medium';
+          questionText.textContent = `${i+1}. ${q.question}`;
+          
+          const optionsDiv = document.createElement('div');
+          optionsDiv.className = 'space-y-2 pl-6';
+          
+          q.options.forEach((option, j) => {
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'flex items-center';
+            
+            const input = document.createElement('input');
+            input.type = 'radio';
+            input.name = `q${i}`;
+            input.value = j;
+            input.id = `q${i}o${j}`;
+            input.className = 'mr-3';
+            input.required = true;
+            
+            const label = document.createElement('label');
+            label.htmlFor = `q${i}o${j}`;
+            label.textContent = option;
+            
+            optionDiv.appendChild(input);
+            optionDiv.appendChild(label);
+            optionsDiv.appendChild(optionDiv);
+          });
+          
+          questionDiv.appendChild(questionText);
+          questionDiv.appendChild(optionsDiv);
+          container.appendChild(questionDiv);
+        });
+      });
+
+    // Handle form submission
+    document.getElementById('quizForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const answers = [];
+      const inputs = document.querySelectorAll('input[type="radio"]:checked');
+      inputs.forEach(input => answers.push(parseInt(input.value)));
+      
+      try {
+        const response = await fetch('/api/quiz', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ answers })
+        });
+        
+        const result = await response.json();
+        
+        document.getElementById('score').textContent = result.score;
+        document.getElementById('maxScore').textContent = result.maxScore;
+        
+        const assessment = document.getElementById('assessment');
+        assessment.textContent = result.assessment;
+        
+        if(result.score <= 3) {
+          assessment.className = 'text-lg p-4 rounded-lg bg-green-900 bg-opacity-20';
+        } else if(result.score <= 6) {
+          assessment.className = 'text-lg p-4 rounded-lg bg-yellow-600 bg-opacity-20';
+        } else {
+          assessment.className = 'text-lg p-4 rounded-lg bg-red-600 bg-opacity-20';
+        }
+        
+        document.getElementById('results').classList.remove('hidden');
+        window.scrollTo(0, document.body.scrollHeight);
+      } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while submitting the quiz');
+      }
+    });
+  </script>
+</body>
+</html>
